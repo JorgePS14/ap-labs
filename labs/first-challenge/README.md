@@ -36,21 +36,21 @@ Note that the answer must be a substring, `pwke` is a subsequence and not a subs
 Build Requirements
 ------------------
 ```
-# Build Requirements here
+Python3 installed
 ```
 
 
 How to build
 ------------
 ```
-# instructions here
+It's Python, no need to build
 ```
 
 
 How to Run
 ----------
 ```
-# instructions here
+python3 LongestSubstring.py <string_to_be_analyzed>
 ```
 
 
