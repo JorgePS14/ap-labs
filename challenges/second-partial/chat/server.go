@@ -73,9 +73,10 @@ func kickCommand(user, ban string) {
 	} else {
 		if _, ok := onlineUsers[ban]; ok {
 			fmt.Fprintln(onlineUsers[ban], serverMsg + "The server admin has kicked you for inappropriate behavior.")
+			fmt.Println(serverMsg + "The user [" + ban + "] has been kicked")
+			messages <- serverMsg + "The user " + ban + " has been kicked from the server. Please behave accordingly."
 			onlineUsers[ban].Close()
 			delete(onlineUsers, ban)
-			messages <- serverMsg + "The user " + ban + " has been kicked from the server. Please behave accordingly."
 		}
 
 		fmt.Fprintln(onlineUsers[user], serverMsg + "The username " + ban + " doesn't exist in this session.")
@@ -127,7 +128,7 @@ func handleConn(conn net.Conn) {
 
 	onlineUsers[usr] = conn
 
-	fmt.Printf("%sA new user has logged into the session: [%s]!\n", serverMsg, usr)
+	fmt.Printf("%sA new user has logged into the session: [%s]\n", serverMsg, usr)
 
 	fmt.Fprintln(conn, serverMsg + "Welcome to the Simple IRC Server.")
 	fmt.Fprintln(conn, serverMsg + "Login succeeded: " + time.Now().UTC().String())
@@ -147,60 +148,65 @@ func handleConn(conn net.Conn) {
 	input := bufio.NewScanner(conn)
 
 	for input.Scan() {
-		if string(input.Text()[0]) == "/" {
-			command := strings.Split(input.Text(), " ")
-			cmd := command[0]
+		if len(input.Text()) > 0 {
+			if string(input.Text()[0]) == "/" {
+				command := strings.Split(input.Text(), " ")
+				cmd := command[0]
 
-			switch cmd {
-				case "/users":
-					ch <- usersCommand()
+				switch cmd {
+					case "/users":
+						ch <- usersCommand()
 
-				case "/msg":
-					if len(command) < 3 {
-						ch <- serverMsg + "Please use the correct command format: /msg <user> <message>"
-						continue
-					}
+					case "/msg":
+						if len(command) < 3 {
+							ch <- serverMsg + "Please use the correct command format: /msg <user> <message>"
+							continue
+						}
 
-					msgCommand(usr, command[1], command[2:])
+						msgCommand(usr, command[1], command[2:])
 
-				case "/time":
-					ch <- timeCommand()
+					case "/time":
+						ch <- timeCommand()
 
-				case "/user":
-					if len(command) < 2 {
-						ch <- serverMsg + "Please use the correct command format: /user <user>"
-						continue
-					}
+					case "/user":
+						if len(command) < 2 {
+							ch <- serverMsg + "Please use the correct command format: /user <user>"
+							continue
+						}
 
-					ch <- userCommand(command[1])
+						ch <- userCommand(command[1])
 
-				case "/kick":
-					if len(command) < 2 {
-						ch <- serverMsg + "Please use the correct command format: /kick <user>"
-						continue
-					}
+					case "/kick":
+						if len(command) < 2 {
+							ch <- serverMsg + "Please use the correct command format: /kick <user>"
+							continue
+						}
 
-					kickCommand(usr, command[1])
+						kickCommand(usr, command[1])
 
-				default:
-					ch <- serverMsg + "Please refrain from starting your messages with '/'. That character is used for commands only."
+					default:
+						ch <- serverMsg + "Please refrain from starting your messages with '/'. That character is used for commands only."
+				}
+			} else {
+				messages <- usr + "> " + input.Text()
 			}
-		} else {
-			messages <- usr + "> " + input.Text()
-		}
-	}
-
-	if usr == admin {
-		for user, _ := range onlineUsers {
-			admin = user
-			messages <- serverMsg + "[" + user + "] has been promoted to admin because the previous admin, [" + usr + "], is leaving."
-			continue
 		}
 	}
 
 	leaving <- ch
-	messages <- serverMsg + "[" + usr + "] has left"
+	fmt.Println(serverMsg + "[" + usr + "] has left.")
+	messages <- serverMsg + "[" + usr + "] has left the chat. Goodbye, [" + usr + "]"
+	delete(onlineUsers, usr)
 	conn.Close()
+
+	if usr == admin {
+		for user, _ := range onlineUsers {
+			admin = user
+			fmt.Println(serverMsg + "[" + user + "] is now the new admin.")
+			messages <- serverMsg + "[" + user + "] has been promoted to admin because the previous admin, [" + usr + "], is leaving."
+			break
+		}
+	}
 }
 
 func clientWriter(conn net.Conn, ch <-chan string) {
@@ -215,6 +221,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Println(serverMsg + "Initializing server...")
+
 	host := flag.String("host", "localhost", "address")
 	port := flag.String("port", os.Args[4], "listener")
 	flag.Parse()
@@ -226,6 +234,9 @@ func main() {
 	}
 
 	go broadcaster()
+
+	fmt.Println(serverMsg + "Successfully mounted IRC Server in " + *host + ":" + *port)
+	fmt.Println(serverMsg + "Server initialized. Ready to receive new clients.")
 
 	for {
 		conn, err := listener.Accept()
