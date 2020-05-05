@@ -137,6 +137,7 @@ func handleConn(conn net.Conn) {
 
 	if newAdmin {
 		admin = usr
+		fmt.Println(serverMsg + "[" + usr + "] is now the server admin.")
 		fmt.Fprintln(conn, serverMsg + "You are now the admin of this IRC server.")
 	}
 
