@@ -64,7 +64,7 @@ func userCommand(username string) string {
 		return serverMsg + username + ", IP: " + onlineUsers[username].RemoteAddr().String()
 	}
 
-	return serverMsg + "This user <" + username + "> doesn't exist"
+	return serverMsg + "The user <" + username + "> doesn't exist"
 }
 
 func kickCommand(user, ban string) {
@@ -74,7 +74,7 @@ func kickCommand(user, ban string) {
 		if _, ok := onlineUsers[ban]; ok {
 			fmt.Fprintln(onlineUsers[ban], serverMsg + "The server admin has kicked you for inappropriate behavior.")
 			fmt.Println(serverMsg + "The user [" + ban + "] has been kicked")
-			messages <- serverMsg + "The user " + ban + " has been kicked from the server. Please behave accordingly."
+			messages <- serverMsg + "The user [" + ban + "] has been kicked from the server. Please behave accordingly."
 			onlineUsers[ban].Close()
 			delete(onlineUsers, ban)
 		}
