@@ -7,4 +7,6 @@ build:
 	go build city-traffic.go
 
 run:
-	./city-traffic 
+	./city-traffic
+
+include ../../common.mk
